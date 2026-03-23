@@ -1,0 +1,44 @@
+rom gpiozeroimport LED         # ‘gpiozero’ 라이브러리에서‘LED’  클래스를가져옴
+from time import sleep           # ‘time’ 라이브러리에서‘sleep’ 함수를가져옴
+
+carLedRed = 2                 # 다양한LED 핀의핀번호를변수로정의함 (Lines 4 ~ 8)
+carLedYellow= 3                 # carLedRed, carLedYellow, carLedGreen, humanLedRed,humanLedGreen 변수에각각핀번호를할당
+carLedGreen = 4
+humanLedRed  = 20
+humanLedGreen = 21
+
+carLedRed = LED(2)            # 각LED를LED 클래스의객체로초기화하며, 핀번호를사용하여LED 객체를생성.메모리 공간에 객체 생성.(Lines 10 ~ 14)
+carLedYellow = LED(3)         #LED역할을 결정함. (할당해줌) 
+carLedGreen = LED(4)
+humanLedRed = LED(20)
+humanLedGreen = LED(21)
+  
+try:                             # 무한루프（while 1:’）를시작, 이루프에서는아래의동작을반복함(Lines 16 ~ 35)
+   while 1:                      #강제 중단 전까지 내부코드를 무한히 반복함      
+         carLedRed.value =0            #<차량 주행 상태임.>
+         carLedYellow.value =0         #.value = 0 이므로 LED를 끄는 것을 의미(차량 신호)
+         carLedGreen.value =1          # .value = 1 이므로 LED를 켜는 것을 의미
+         humanLedRed.value =1
+         humanLedGreen.value =0
+         sleep(3.0)                    #유지 시간에 의해 3초가 유지.
+         carLedRed.value =0
+         carLedYellow.value =1
+         carLedGreen.value =0
+         humanLedRed.value =1
+         humanLedGreen.value =0
+         sleep(1.0)                    #1초간 유지
+         carLedRed.value =1           #<보행자 행단 상태>
+         carLedYellow.value=0
+         carLedGreen.value=0
+         humanLedRed.value=0
+         humanLedGreen.value=1
+         sleep(3.0)
+
+except KeyboardInterrupt:  # 사용자가Ctrl + C를누를때까지코드를실행하는예외처리블록임(예외 생기면 패스)
+    pass                   # 사용자가Ctrl + C를누르면루프가중단되고코드실행이종료됨
+ 
+carLedRed.value=0             # 코드실행이종료되면모든LED를꺼줌(Lines 40 ~ 44)
+carLedYellow.value=0
+carLedGreen.value=0
+humanLedRed.value=0
+humanLedGreen.value=0
