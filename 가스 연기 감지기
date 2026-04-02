@@ -1,0 +1,22 @@
+from gpiozero import DigitalInputDevice  # 'gpiozero' 라이브러리에서 'DigitalInputDevice' 클래스를 가져옴-> GPIO 핀을 "입력용".
+from gpiozero import OutputDevice        # 'gpiozero' 라이브러리에서 'OutputDevice' 클래스를 가져옴->GPIO 핀을 "출력용".
+import time                              # 'time' 라이브러리를 가져옴-> 시간 관련 기능을 쓰기 위한 라이브러리
+
+bz = OutputDevice(18)                    # GPIO 18번 핀을 출력하는 설정. bz.on()/off()에 따라 부저가 울리거나 꺼짐.
+gas = DigitalInputDevice(17)             # GPIO 17번 핀을 MQ2 센서 입력 핀으로 초기화
+
+try:                                     # 무한 루프 시작 -> 계속 센서를 감지함.
+    while True:
+        if gas.value == 0:               # DO 핀이 LOW(0)이면 가스 감지
+            print("가스감지됨")           # 터미널 출력(콘솔)
+            bz.on()                      # 부저 ON-> 경고음 발생함. 
+        else:                            # DO 핀이 HIGH(1)이면 정상 상태-> 가스 없음
+            print("정상")                 # 터미널 출력
+            bz.off()                     # 부저 OFF -> 소리 없음
+
+        time.sleep(0.2)                  # 0.2초마다 반복 확인(0.2 초 대기)- 적당한 간격으로 센서 체
+
+except KeyboardInterrupt:                # Ctrl+C 입력 시 종료. 사용자가 Ctrl + C를 눌렀을 때 실행-> 강제 종료
+    pass
+
+bz.off()                                 # 종료 시 부저 OFF-> 프로그램이 끝날 때 부저를 반드시 꺼줌.
