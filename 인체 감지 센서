@@ -1,1 +1,28 @@
+from gpiozero import MotionSensor      # gpiozero 라이브러리에서 MotionSensor 클래스를 가져옴
+import time                            # time 라이브러리를 가져옴
+from picamera2 import Picamera2        # picamera2 라이브러리에서 Picamera2 클래스를 가져옴
+import datetime                        # 날짜/시간 처리를 위한 datetime 라이브러리
 
+pirPin = MotionSensor(16)              # GPIO 16번 핀을 PIR 모션센서 입력핀으로 초기화->16번 핀으로 들어오는 신호를 읽을 수 있다.
+
+picam2 = Picamera2()                   # 카메라 제어를 위해 Picamera2 객체를 생성하여 picam2 변수에 할당한다.
+camera_config = picam2.create_preview_configuration()  # 카메라 미리보기 설정 구성<사진 캡처를 위한 준비 단계>
+picam2.configure(camera_config)        #생성한 카메라 설정을 실제 카메라 객체에 적용한다.
+picam2.start()                         # 카메라 모듈이 활성화되어 사진 찍을 준비 완료.
+
+try:
+    while True:                        # 무한 루프 시작
+        try:
+            sensorValue = pirPin.value     # PIR 센서의 현재 값을 읽어 변수에 저장
+            if sensorValue == 1:           # 센서값이 1이면 움직임 감지(아래 코드 실행)
+                now = datetime.datetime.now()   # 현재 날짜와 시간 가져옴
+                print(now)                      # 감지된 시각 출력(now는 현재 시각)
+                fileName = now.strftime('%y-%m-%d %H:%M:%S')  # 지정된 파일 형식(년-월-일 시:분:초)
+                picam2.capture_file(fileName + '.jpg')        # 사진 촬영 및 저장
+                time.sleep(0.5)               # 0.5초 대기 (연속 촬영 방지)-쿨타임 역할.
+
+        except:                               # 촬영 중 오류 발생 시 무시
+            pass                 #어떤 에러가 발생하더라도 pass(아무것도 하지 않고 넘기기)를 통해 프로그램을 강제 종료하지 않고 계속 다음 루프를 돌도록 한다.
+
+except KeyboardInterrupt:                     # Ctrl+C 입력 시 종료
+    pass
