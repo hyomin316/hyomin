@@ -1,1 +1,58 @@
+import urllib.request
+import json
+import datetime
+import asyncio                #비동기 실행 라이브러리
+from telegram import Bot      #텔레그램 봇 객체 
 
+telegram_id = 'Enter your chat ID here'  # 메시지를 받을 사용자의 채팅 ID
+my_token = 'Enter your bot token here'   # 텔레그램 봇 토큰
+api_key = 'Enter your API key here'      # OpenWeatherMap API 키
+
+bot = Bot(token=my_token)    # 텔레그램 봇 객체 생성
+
+# 알림 조건 설정
+ALERT_HOURS = [7, 10, 13, 16, 19, 22]  # 1. 특정 시간(정각)에 알림을 보낼 시간 리스트 (7시, 10시, 13시 등)
+ALERT_TIMES = ["08:30", "14:45"]       # 2. 특정 시각(분 단위 포함)에 알림을 보낼 리스트
+
+def getWeather():   #OpenWeatherMap에서 서울 날씨 데이터를 가져와 문자열로 포맷팅하는 함수
+    url = f"https://api.openweathermap.org/data/2.5/forecast?q=Seoul&appid={api_key}&units=metric&lang=en&cnt=8"
+    
+    with urllib.request.urlopen(url) as r:      #API에 요청 보내기
+        data = json.loads(r.read())             #응답을 JSON으로 변
+        
+    text = ""                  # 결과 문자열 초기화
+    for i in range(8):         # 가져온 8개의 예보 항목(약 24시간 분량)을 반복 처리
+        item = data['list'][i]
+        
+        hour = str((int(item['dt_txt'][11:13]) + 9) % 24).zfill(2)  # UTC 시간을 한국 시간(KST, UTC+9)으로 변환하여 시간(hour) 추출
+        temp = item['main']['temp']          # 온도
+        humi = item['main']['humidity']      # 습도
+        desc = item['weather'][0]['description'] # 날씨 상태 설명
+
+        text += f"({hour}h {temp}C {humi}% {desc})\n"      # 한 줄의 문자열로 구성하여 추가
+        
+    return text
+
+async def main():
+    try:
+        while True:
+            now = datetime.datetime.now()    # 현재 시스템 시간 가져오기
+            hm = now.strftime('%H:%M')       # 현재 시:분 형식 문자열
+            
+            # 조건 1)  현재 시간이 ALERT_HOURS에 포함되고 0분 0초일 때
+            is_alert_hour = now.hour in ALERT_HOURS and now.minute == 0 and now.second == 0
+            # 조건 2)  현재 시:분이 ALERT_TIMES에 포함되고 0초일 때
+            is_alert_time = hm in ALERT_TIMES and now.second == 0
+            
+            if is_alert_hour or is_alert_time:      # 두 조건 중 하나라도 만족하면 날씨를 가져와 전송
+                msg = getWeather()           # 날씨 정보 생성
+                print(msg)                   # 콘솔로그 출력
+                await bot.send_message(chat_id=telegram_id, text=msg)  # 텔레그램으로 메시지 비동기 전송
+            
+            # 1초마다 반복하며 시간 체크 (CPU 점유율 방지)
+            await asyncio.sleep(1)
+            
+    except KeyboardInterrupt:
+        pass  #예외 처
+
+asyncio.run(main())    # 비동기 이벤트 루프 실행
