@@ -1,0 +1,58 @@
+import cv2
+from gpiozero import Buzzer
+import time
+
+buzzerPin = Buzzer(16) # GPIO 16번에 부저 객체 생성
+
+def main():
+    camera = cv2.VideoCapture(-1) # 웹캠 자동 탐지 후 열기
+    camera.set(3, 640)            # 가로 해상도 640픽셀 설정
+    camera.set(4, 480)            # 세로 해상도 480픽셀 설정
+    
+    # Haar Cascade 모델 경로 지정
+    face_xml = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml' #얼굴 탐지 모델 경로
+    eye_xml = cv2.data.haarcascades + 'haarcascade_eye.xml' #눈 탐지 모델 경로
+    
+    # 분류기 생성
+    face_cascade = cv2.CascadeClassifier(face_xml) #얼굴 탐지 분류기 생성
+    eye_cascade = cv2.CascadeClassifier(eye_xml)  #눈 탐지 분류기 생
+    
+    while(camera.isOpened()):  #카메라 열려있는 동안 반복
+        ret, image = camera.read()
+        
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) # 흑백 이미지로 변환
+        
+        # 흑백 이미지에서 얼굴 탐지
+        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(100,100))
+        print("faces detected Number: " + str(len(faces)))
+        
+        if len(faces):
+            for (x, y, w, h) in faces:
+                cv2.rectangle(image, (x, y), (x+w, y+h), (255, 0, 0), 2) # 얼굴에 파란 사각형
+                
+                face_gray = gray[y:y+h, x:x+w]     # 얼굴 영역 흑백 이미지 추출
+                face_color = image[y:y+h, x:x+w]   # 얼굴 영역 컬러 이미지 추출
+                
+                # 얼굴 영역 내부에서 눈 탐지
+                eyes = eye_cascade.detectMultiScale(face_gray, scaleFactor=1.1, minNeighbors=5)
+                
+                # 조건문 제어 로직: 탐지된 눈이 1개 이하이면 부저 ON, 2개 이상이면 부저 OFF
+                if len(eyes) <= 1:
+                    buzzerPin.on()
+                else:
+                    buzzerPin.off()
+                    
+                for (ex, ey, ew, eh) in eyes:
+                    cv2.rectangle(face_color, (ex, ey), (ex+ew, ey+eh), (0, 255, 0), 2) # 눈에 초록 사각형
+                    
+        cv2.imshow('result', image) # 결과 이미지 GUI 출력
+        
+        if cv2.waitKey(1) == ord('q'): # q키 입력 시 종료
+            break
+            
+    camera.release()
+    cv2.destroyAllWindows()
+    buzzerPin.off() # 프로그램 종료 시 부저 강제 정지
+
+if __name__ == '__main__':
+    main()
