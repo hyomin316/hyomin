@@ -1,0 +1,60 @@
+import tkinter as tk
+from gpiozero import DistanceSensor
+import threading
+import time
+
+sensor = DistanceSensor(echo=24, trigger=23, max_distance=2) # 초음파 센서 초기화 (Echo=24, Trigger=23, 최대 측정거리 2m)
+
+running = True
+
+# 백그라운드에서 거리를 측정하고 GUI 화면 색상을 제어하는 루프
+def read_distance_loop():
+    while running:        
+        distance_cm = sensor.distance * 200  # DistanceSensor는 0.0~1.0을 반환하므로 max_distance(2m)를 곱해 cm로 변환
+        distance_label.config(text=f"{distance_cm:.1f} cm")  # 1. 메인 GUI 창의 큰 숫자 텍스트 실시간 갱신
+
+        # 2. 거리에 따라 'GUI 화면 색상'과 '텍스트 경고'를 실시간 변경
+        if distance_cm <= 15:
+            root.config(bg="red")
+            title_label.config(bg="red", fg="white")
+            distance_label.config(bg="red", fg="white")
+            status_label.config(text="🚨 위험! 충돌 주의 🚨", bg="red", fg="white")
+        elif distance_cm <= 50:
+            root.config(bg="orange")
+            title_label.config(bg="orange", fg="black")
+            distance_label.config(bg="orange", fg="black")
+            status_label.config(text="⚠️ 주의! 물체 접근 중", bg="orange", fg="black")
+        else:
+            root.config(bg="lightgreen")
+            title_label.config(bg="lightgreen", fg="black")
+            distance_label.config(bg="lightgreen", fg="black")
+            status_label.config(text="✅ 안전 거리 확보됨", bg="lightgreen", fg="black")
+            
+        time.sleep(0.15)
+
+def on_closing():
+    global running
+    running = False
+    root.destroy()
+
+# ------- Tkinter GUI 디자인 구성 -------
+root = tk.Tk()
+root.title("스마트 후방 감지 시스템")
+root.geometry("450x350")
+root.config(bg="lightgreen")
+root.protocol("WM_DELETE_WINDOW", on_closing)
+
+title_label = tk.Label(root, text="🚗 주차 보조 거리 모니터", font=("Arial", 22, "bold"), bg="lightgreen")
+title_label.pack(pady=25)
+
+distance_label = tk.Label(root, text="0.0 cm", font=("Arial", 45, "bold"), fg="black", bg="lightgreen")
+distance_label.pack(pady=15)
+
+status_label = tk.Label(root, text="✅ 안전 거리 확보됨", font=("Arial", 18, "bold"), fg="black", bg="lightgreen")
+status_label.pack(pady=25)
+
+t = threading.Thread(target=read_distance_loop)
+t.daemon = True
+t.start()
+
+root.mainloop()
